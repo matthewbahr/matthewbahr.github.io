@@ -32,7 +32,7 @@ green     #859900
 }
 
 body {
-	background-color:#fdf6e3;
+	/*background-color:#fdf6e3;*/
 	font-family: Sans-Serif;
 	padding: 15px 15px 15px 15px
 }
@@ -40,7 +40,7 @@ body {
 /*Centered header @ top*/
 h1
 {
-	color:#af8700;
+	/*color:#af8700;*/
 	text-align:center;
 	padding: 10px 10px 10px 10px;
 }
@@ -48,36 +48,36 @@ h1
 /*Blue Sub-header*/
 h2.blue
 {
-	color:#268bd2;
+	/*color:#268bd2;*/
 	padding: 0px 0px 0px 10px;
 }
 /*Cyan Sub-header*/
 h2.cyan
 {
-	color:#2aa198;
+	/*color:#2aa198;*/
 	padding: 0px 0px 0px 10px;
 }
 
 h3{
-	color:#2aa198;
+	/*color:#2aa198;*/
 	padding: 0px 0px 0px 20px;
 }
 
 p
 {
-	color:#839496;
+	/*color:#839496;*/
 	padding: 0px 0px 0px 30px;
 }
 
 p.signature
 {
-	color:#859900;
+	/*color:#859900;*/
 	padding: 0px 0px 100px 60px;
 }
 
 p.date
 {
-	color:#859900;
+	/*color:#859900;*/
 	text-align: center;
 	font-size:85%;
 	padding: 0px 0px 0px 0px;
@@ -85,7 +85,7 @@ p.date
 
 p.navtitle
 {
-	color:#dc322f;
+	/*color:#dc322f;*/
 	padding: 0px 0px 0px 10px;
 	text-align: center;
 	font-size:200%;
@@ -96,14 +96,14 @@ p.code
 
 	font-family: monospace;
 	padding: 0px 0px 0px 60px;
-	color:#b58900;
+	/*color:#b58900;*/
 	font-size: large;
 }
 
 p.footer {
 	position: fixed;
 	bottom: 0;
-	color: #586e75;
+	/*color: #586e75;*/
 	padding: 0px 0px 0px 0px;
 	text-size:large;
 }
