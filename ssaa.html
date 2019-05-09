@@ -1,0 +1,342 @@
+<html>
+<head>
+        <title> bahrcodes </title>
+        <link rel="stylesheet" href="style.css" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+        <link rel="manifest" href="/site.webmanifest">
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#002b36">
+        <meta name="msapplication-TileColor" content="#da532c">
+        <meta name="theme-color" content="#002b36">
+</head>
+<body>
+
+<h1>
+Shell Script Audiobook Automation
+</h1>
+
+<h2 class="cyan">
+The problem:
+</h2>
+<p>
+Handling all of my .mp3 audiobooks which have generic junk names to categorize them in an ideal format for my preferred  audiobook player, Smart Audiobook Player: {AUTHOR}/{BOOK}/[CHAPTERS.mp3]. Followed by compression and then making them easily available for my phone.
+</p>
+
+<h2 class="cyan">
+The solution:
+</h2>
+<p>
+Mess around with bash until I could get it working.
+</p>
+
+<h2 class="cyan">
+Step 1: categorizing the files.
+</h2>
+
+<p>
+The good news is that I managed at least to store all the correct information as fields on the mp3s, so all I had to do was restructure the files based on their mp3 idents.
+</p>
+
+<p>
+Some light googling revealed the id3v2 package with a helpful little tutorial on how to use it from Stack Overflow.
+</p>
+
+<p class="code">
+ARTIST=`id3v2 -l "$file" | grep TPE1 | cut -d":" -f2 | sed -e 's/^[[:space:]]*//'`;
+</p>
+<p class="code">
+ALBUM=`id3v2 -l "$file" | grep TALB | cut -d":" -f2 | sed -e 's/^[[:space:]]*//'`;
+</p>
+
+
+<p>
+Breaking down that command:
+</p>
+
+<p>
+Take the id3v2 of the command and find the line containing TPE1, split it on the : char and take the 2nd index of that, then clean up the string formatting.
+</p>
+
+<p>
+Great! That gives me my data ready to format.
+</p>
+
+<p>
+Problem is that every chapter in the book has that data, but they're not all consistently named. So I need to move each of those files into a folder with the correct structure and name them consistently for zipping.
+</p>
+
+<p>
+Moving to the right folder is easy:
+</p>
+
+<p class="code">
+mkdir -p ../temp/"${ALBUM%}"/"${ARTIST%}"/"${ALBUM%}"/
+</p>
+
+<p>
+Album is intentionally in there twice: The outer folder will be used as the book name. The -p is to suppress errors if the folder already exists (because this is called for every file).
+</p>
+
+<p>
+But now I need to get the chapter number. Looking up the info tells me I need the following key: TRCK
+</p>
+
+<p>
+Easy enough to add that in to the commands from before:
+</p>
+
+<p class="code">
+TR_NUM=`id3v2 -l "$file" | grep TRCK | cut -d":" -f2 | sed -e 's/^[[:space:]]*//'`;
+</p>
+
+<p>
+Now we just copy the file over (not so confident of my script as to destroy the originals in the process, so we avoid mv):
+</p>
+
+<p class="code">
+cp "$file" ../temp/"${ALBUM%}"/"${ARTIST%}"/"${ALBUM%}"/"${TR_NUM%}".mp3
+</p>
+
+<h2 class="cyan">
+Part 2: zipping
+</h2>
+
+<p>
+So we're all ready to zip. I personally like 7zip, so I use 7z.
+</p>
+
+<p>
+Using find I iterate over the temp dir.
+</p>
+
+<p class="code">
+find ../temp/* -maxdepth 0 -type d | while read tempdir
+</p>
+
+<p class="code">
+7z a -t7z "${tempdir}".7zip "${tempdir}"'
+</p>
+
+<p>
+At which point I find the zip and ship it out to my structured folder,which only contains completed zips.
+</p>
+
+<p class="code">
+find ../temp/ -type f -iname "*.7zip" | while read zip
+</p>
+<p class="code">
+do
+</p>
+<p class="code">
+mv "${zip}" ../structured/
+</p>
+<p class="code">
+done
+</p>
+
+<p>
+Phew. Steps 1 and 2 are done.
+</p>
+
+<p>
+Now for step 3
+</p>
+
+
+<h2 class="cyan">
+Step 3: making them available to my phone.
+</h2>
+
+<h3>
+Step a) where does it go?
+</h3>
+<p>
+Android is my poison of choice and my terminal is Termux. Termux thankfully operates on bash syntax and most shell scripts seem to work with little need for tweaks.
+</p>
+
+<p>
+First step was being sure that 7zip was available on Termux, which thankfully it was. (Note this step was done before I zipped up all the files server side, because I'm not a masochist). Next was attempting to locate my Audio Books folder on my device so I would have a relative path I could unzip into.
+</p>
+
+<p>
+Here is where we encountered the first snag: Termux has a weird way of accessing the Android file system. Android tends to lock apps into their own subsystems to prevent apps from arbitrarily reading and modifying other folders. Termux has the ability to access stored data, but it does so by adding a sym link into your home dir called storage.
+</p>
+
+<p>
+When you go into storage though, the folders are limited:
+</p>
+
+<p class="code">
+$ls ~/storage
+</p>
+<p class="code">
+dcim       movies     pictures
+</p>
+<p class="code">
+downloads  music      shared
+</p>
+
+<p>
+Unfortunately none of those are really what I'm looking for. So I tried a hack:
+</p>
+
+<p class="code">
+$ls ~/storage/downloads/..
+</p>
+
+<p>
+And suddenly I was gifted with what I was expecting: the contents of my storage folder including, crucially, the Audiobooks folder.
+</p>
+<p>
+So I tried ls ~/storage/Audiobooks and got:
+</p>
+
+<p class="code">
+ls: storage/Audiobooks: No such file or directory
+</p>
+
+<p>
+Rats.
+</p>
+
+<p>
+However I knew I could get there by following the file structure back up from downloads so I ended up with a relative path of:
+</p>
+
+<p class="code">
+~/storage/downloads/../Audiobooks
+</p>
+
+<p>
+Weird, but but it works. I think the reason is something to do with how Termux sets up its links into the file system, but didn't care to dig more.
+</p>
+
+<p>
+After getting my ssh config file set up and my public key transfered over to the server I started working on the script.
+</p>
+
+<h3>
+Step b) Getting the file
+</h3>
+
+<p>
+Thankfully scp works great on Termux and since I'm not going to the effort of making this into an ftp server I'll just stick with scp.
+</p>
+
+<p class="code">
+scp raven:~/audiobooks/"${path}"* ~/tmp
+</p>
+
+<p>
+So all I need to do is get the book from the server using the path variable, while I could pass as a command line arg but I wanted to do it as input, so that I didn't have to add quotes every time to escape out the spaces.
+</p>
+
+<p class="code">
+read -p "Book: " rawpath
+</p>
+
+<p>
+That rawpath is then escaped with
+</p>
+
+<p class="code">
+path="$(echo $rawpath | sed 's/ /\\ /g')"
+</p>
+
+<p>
+Which simply replaces all spaces with "\ " instead. This was necessary as the regular syntax for handling spaces in bash didn't seem to work on Termux, so it was interpreting my input as having spaces.
+</p>
+
+<p>
+Next, I extract the downloaded file to the temp folder:
+</p>
+
+<p class="code">
+7z x ~/tmp/* -o./tmp/
+</p>
+
+<p>
+And then remove the zipped file
+</p>
+
+<p class="code">
+rm -f ~/tmp/*.7zip
+</p>
+
+<p>
+So that the entire directory just contains a sub directory of Author/Title/ with all the chapters.
+</p>
+
+<h3>
+Step c) the last mile
+</h3>
+
+<p>
+Now the tricky part. If I have multiple books by the same author, then I need to move in only the book part of the directory. If the author doesn't exist, then I need to move in author and book together.
+</p>
+
+<p>
+So I took the path in my temp folder and grabbed the name of the author based on for structure using extglob to just get the name of the directory I'm looking for:
+</p>
+
+<p class="code">
+temp="${path%"${path##*[!/]}"}"
+</p>
+
+<p class="code">
+dir=${temp##*/}
+</p>
+
+<p>
+So we check if the first exists using our wonky relative path (the script is executed from ~) using our nifty bash if statement:
+</p>
+
+<p class="code">
+if [ -d storage/downloads/../Audiobooks/"${dir}" ];
+</p>
+
+<p>
+Then we have 2 possibilities. 1st is that the directory already exists, in which case we just move in the sub directory(s) of Title(s).
+</p>
+
+<p class="code">
+mv -v ~/tmp/"$dir"/* storage/downloads/../Audiobooks/"$dir"
+</p>
+
+<p>
+Otherwise we just move in everything as is.
+</p>
+
+<p class="code">
+mv -v ~/tmp/* storage/downloads/../Audiobooks
+</p>
+
+<h2 class="cyan">
+Conclusion
+</h2>
+
+<p>
+Now I'm absolutely sure there are 100 different ways that I did this "wrong" and a thousand different inefficiencies in my scripts and design. Part of the reason I'm posting this is to get feed back on what I've done wrong, but mostly it's to have a journal of what I've done and the work that went into it.
+</p>
+
+<p>
+Before this I had very limited bash scripting experience, having only ever written a single script: I'm sure that my clumsiness shows. My goal though was to better understand the shell and scripting in general, as well as solving the problems I had listed before.
+</p>
+
+<p>
+As such the exercise was a total success. It probably took me far longer to make than the time I'll save on it, but I like to believe that the skills learned will be useful for a long time to come.
+<a class="inline" href=https://xkcd.com/1205/> Relevent XKCD </a>
+</p>
+
+
+<p class="signature">
+	-mdb
+</p>
+
+<p class="date">
+2019-01-22
+</p>
+
+
+</body></html>
